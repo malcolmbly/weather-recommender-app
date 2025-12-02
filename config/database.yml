@@ -15,7 +15,6 @@
 default: &default
   adapter: postgresql
   encoding: unicode
-  host: db
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
   max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
@@ -24,6 +23,7 @@ default: &default
 development:
   <<: *default
   database: app_development
+  host: <%= ENV.fetch("DB_HOST") { "db" } %>
 
   # The specified database role being used to connect to PostgreSQL.
   # To create additional roles in PostgreSQL see `$ createuser --help`.
@@ -59,6 +59,7 @@ development:
 test:
   <<: *default
   database: app_test
+  host: <%= ENV.fetch("DB_HOST") { "db" } %>
 
   username: postgres
 
@@ -93,10 +94,10 @@ test:
 # for a full overview on how database connection configuration can be specified.
 #
 production:
-  <<: *default
   # Render provides DATABASE_URL environment variable
-  # Rails will automatically use it, overriding the settings below
-  # The settings below are fallbacks if DATABASE_URL is not set
-  database: app_production
-  username: app
-  password: <%= ENV["APP_DATABASE_PASSWORD"] %>
+  # Rails will automatically use it and ignore these settings
+  # If DATABASE_URL is not set, use these fallback values
+  url: <%= ENV['DATABASE_URL'] %>
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
