@@ -21,19 +21,15 @@ default: &default
 
 
 development:
-  primary:
+  primary: &primary_development
     <<: *default
     database: app_development
     host: <%= ENV.fetch("DB_HOST") { "db" } %>
     username: postgres
     password: password
   queue:
-    <<: *default
-    database: app_development
-    host: <%= ENV.fetch("DB_HOST") { "db" } %>
-    username: postgres
-    password: password
-    migrations_paths: db/queue_migrate
+    <<: *primary_development
+
 
   # Connect on a TCP socket. Omitted by default since the client uses a
   # domain socket that doesn't need configuration. Windows does not have
@@ -60,16 +56,6 @@ test:
   primary:
     <<: *default
     database: app_test
-    host: <%= ENV.fetch("DB_HOST") { "db" } %>
-    username: postgres
-    password: password
-  queue:
-    <<: *default
-    database: app_test
-    host: <%= ENV.fetch("DB_HOST") { "db" } %>
-    username: postgres
-    password: password
-    migrations_paths: db/queue_migrate
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
@@ -98,10 +84,8 @@ test:
 # for a full overview on how database connection configuration can be specified.
 #
 production:
-  primary:
+  primary: &primary_production
     <<: *default
     url: <%= ENV['DATABASE_URL'] %>
   queue:
-    <<: *default
-    url: <%= ENV['DATABASE_URL'] %>
-    migrations_paths: db/queue_migrate
+    <<: *primary_production
