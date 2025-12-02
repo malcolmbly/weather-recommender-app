@@ -12,5 +12,6 @@ test:
   <<: *default
 
 production:
-  database: cache
+  # Use primary database (via DATABASE_URL from Render)
+  # database: cache  # Commented out - using single database on Render
   <<: *default
