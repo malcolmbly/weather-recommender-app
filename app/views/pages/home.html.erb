@@ -1,0 +1,15 @@
+<div class="w-full">
+  <h1 class="text-3xl">Welcome to the Weather Clothing App!</h1>
+  <br>
+  <div>
+    <%= form_with url: "/", method: :post, data: { turbo: false }, class: "flex items-center gap-x-4 p-5" do |form| %>
+      <%= form.label :input, "User Input:", class: "font-semibold" %>
+      <%= form.search_field :user_input, class: "outline"%>
+      <%= form.submit "echo!", class: "bg-gray-100 bg-opacity-50 border-solid p-2 rounded border-gray-50"%>
+    <% end %>
+  </div>
+
+  <div class="text-blue-700">
+     <%="The user said: #{@user_input}" unless @user_input.nil?%>
+  </div>
+</div>
