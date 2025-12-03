@@ -1,0 +1,35 @@
+<div class="container">
+    <h1>Create New Trip</h1>
+
+    <%= form_with(model: @trip) do |form| %>
+        <% if @trip.errors.any? %>
+            <div id="error_explanation">
+                <h2><%= pluralize(@trip.errors.count, "error") %> prohibited this trip from being saved:</h2>
+                <ul>
+                    <% @trip.errors.full_messages.each do |message| %>
+                        <li><%= message %></li>
+                    <% end %>
+                </ul>
+            </div>
+        <% end %>
+
+        <div class="field">
+            <%= form.label :start_date %>
+            <%= form.date_select :start_date %>
+        </div>
+
+        <div class="field">
+            <%= form.label :end_date %>
+            <%= form.date_select :end_date %>
+        </div>
+
+        <div class="field">
+            <%= form.label :city %>
+            <%= form.text_field :city %>
+        </div>
+
+        <div class="actions bg-blue-500">
+            <%= form.submit "Create Trip" %>
+        </div>
+    <% end %>
+</div>

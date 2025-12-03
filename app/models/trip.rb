@@ -1,5 +1,5 @@
 class Trip < ApplicationRecord
-  has_many :trip_forecasts
+  has_many :trip_forecasts, dependent: :destroy
   has_many :forecasts, through: :trip_forecasts
   has_many :recommendations, dependent: :destroy
 
@@ -8,7 +8,7 @@ class Trip < ApplicationRecord
     processing: 1,
     ready: 2,
     failed: 3
-  }
+  }, default: :pending
 
   validates :city, presence: true
   validates :start_date, presence: true

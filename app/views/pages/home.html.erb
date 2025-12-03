@@ -1,5 +1,5 @@
 <div class="w-full">
-  <h1 class="text-3xl">Welcome to the Weather Clothing App!</h1>
+  <h1 class="text-3xl">Welcome to the Trip Clothing Recommender!</h1>
   <br>
   <div>
     <%= form_with url: "/", method: :post, data: { turbo: false }, class: "flex items-center gap-x-4 p-5" do |form| %>
@@ -11,5 +11,9 @@
 
   <div class="text-blue-700">
      <%="The user said: #{@user_input}" unless @user_input.nil?%>
+  </div>
+
+  <div class = "flex text-3xl bg-blue-500 justify-center border-0 rounded-3xl">
+    <%= link_to "View All Trips", trips_path %>
   </div>
 </div>

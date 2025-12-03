@@ -1,0 +1,13 @@
+<div class="trip-details">
+    <h1><%= @trip.city %></h1>
+    
+    <p>
+        <strong>Start Date:</strong>
+        <%= @trip.start_date.strftime("%B %d, %Y") %>
+    </p>
+    
+    <p>
+        <strong>End Date:</strong>
+        <%= @trip.end_date.strftime("%B %d, %Y") %>
+    </p>
+</div>
