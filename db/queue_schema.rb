@@ -10,15 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_02_221154) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_02_235943) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "forecasts", force: :cascade do |t|
-    t.string "city"
+    t.string "city", null: false
     t.string "conditions"
     t.datetime "created_at", null: false
     t.date "date", null: false
+    t.float "precipitation_probability"
     t.float "temperature_apparent_avg"
     t.float "temperature_apparent_max"
     t.float "temperature_apparent_min"
@@ -31,9 +32,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_02_221154) do
   end
 
   create_table "recommendations", force: :cascade do |t|
-    t.string "clothing_category"
+    t.string "clothing_category", null: false
     t.datetime "created_at", null: false
-    t.text "details"
+    t.text "details", null: false
     t.bigint "trip_id", null: false
     t.datetime "updated_at", null: false
     t.index ["trip_id"], name: "index_recommendations_on_trip_id"
@@ -45,6 +46,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_02_221154) do
     t.bigint "trip_id", null: false
     t.datetime "updated_at", null: false
     t.index ["forecast_id"], name: "index_trip_forecasts_on_forecast_id"
+    t.index ["trip_id", "forecast_id"], name: "index_trip_forecasts_on_trip_id_and_forecast_id", unique: true
     t.index ["trip_id"], name: "index_trip_forecasts_on_trip_id"
   end
 
@@ -53,7 +55,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_02_221154) do
     t.datetime "created_at", null: false
     t.date "end_date", null: false
     t.date "start_date", null: false
+    t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.index ["status"], name: "index_trips_on_status"
   end
 
   add_foreign_key "recommendations", "trips"

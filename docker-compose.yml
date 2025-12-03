@@ -17,6 +17,7 @@ services:
       - db
     environment:
       RAILS_ENV: development
+      DATABASE_HOST: db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: app_development
