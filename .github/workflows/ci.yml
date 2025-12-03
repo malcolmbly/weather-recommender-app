@@ -97,9 +97,7 @@ jobs:
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
-          WEATHER_API_KEY: test_api_key_for_ci
-          # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
-          # REDIS_URL: redis://localhost:6379/0
+          WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
         # Use bundle exec rspec to run all RSpec tests
         run: |
           bin/rails db:test:prepare

@@ -2,8 +2,6 @@ require "httparty"
 
 class WeatherForecastApiFetcher
   class WeatherAPIError < StandardError; end
-
-  API_KEY = Rails.application.credentials.dig(:weather_api, :key)
   BASE_URL = "https://api.tomorrow.io/v4/weather/forecast"
 
   def self.fetch_current_weather(city, start_date, end_date)
@@ -25,6 +23,10 @@ class WeatherForecastApiFetcher
 
   private
 
+  def api_key
+    ENV["WEATHER_API_KEY"] || Rails.application.credentials.dig(:external_apis, :weather_forecast, :api_key)
+  end
+
   def make_request
     response = HTTParty.get(
       BASE_URL,
@@ -45,7 +47,7 @@ class WeatherForecastApiFetcher
       location: @city, # HTTParty handles URL encoding (e.g., %20 for space)
       timesteps: "1d",
       units: "imperial",
-      apikey: API_KEY
+      apikey: api_key
     }
   end
 
