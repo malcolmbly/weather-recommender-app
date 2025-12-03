@@ -23,10 +23,6 @@ class WeatherForecastApiFetcher
 
   private
 
-  def api_key
-    ENV["WEATHER_API_KEY"] || Rails.application.credentials.dig(:external_apis, :weather_forecast, :api_key)
-  end
-
   def make_request
     response = HTTParty.get(
       BASE_URL,
@@ -51,6 +47,10 @@ class WeatherForecastApiFetcher
     }
   end
 
+  def api_key
+    ENV["WEATHER_API_KEY"] || Rails.application.credentials.dig(:external_apis, :weather_forecast, :api_key)
+  end
+
   def parse_response(response)
     daily_data = response.parsed_response.dig("timelines", "daily")
 
@@ -60,7 +60,7 @@ class WeatherForecastApiFetcher
       date = Date.parse(day["time"])
       values = day["values"]
 
-      # Only include dates within the requested range
+      # API returns next 5 days regardless of requested range, so filter to requested dates
       next unless date.between?(@start_date, @end_date)
 
       {

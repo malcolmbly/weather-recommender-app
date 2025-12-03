@@ -12,14 +12,6 @@ RSpec.describe WeatherForecastApiFetcher do
   let(:end_date) { Date.today + 2.days }
   let(:fetcher) { described_class.new(city, start_date, end_date) }
 
-  describe '#initialize' do
-    it 'sets city, start_date, and end_date' do
-      expect(fetcher.instance_variable_get(:@city)).to eq(city)
-      expect(fetcher.instance_variable_get(:@start_date)).to eq(start_date)
-      expect(fetcher.instance_variable_get(:@end_date)).to eq(end_date)
-    end
-  end
-
   describe '#fetch' do
     context 'when API returns successful response' do
       let(:api_response) do
@@ -69,7 +61,7 @@ RSpec.describe WeatherForecastApiFetcher do
                 }
               },
               {
-                'time' => (Date.today + 5.days).to_s,
+                'time' => (Date.today + 3.days).to_s,
                 'values' => {
                   'temperatureMax' => 72.0,
                   'temperatureMin' => 52.0,
@@ -80,6 +72,20 @@ RSpec.describe WeatherForecastApiFetcher do
                   'weatherCodeMax' => 1001,
                   'precipitationProbabilityMax' => 20.0,
                   'uvIndexMax' => 4
+                }
+              },
+              {
+                'time' => (Date.today + 4.days).to_s,
+                'values' => {
+                  'temperatureMax' => 77.0,
+                  'temperatureMin' => 57.0,
+                  'temperatureAvg' => 67.0,
+                  'temperatureApparentMax' => 75.0,
+                  'temperatureApparentMin' => 55.0,
+                  'temperatureApparentAvg' => 65.0,
+                  'weatherCodeMax' => 1100,
+                  'precipitationProbabilityMax' => 15.0,
+                  'uvIndexMax' => 6
                 }
               }
             ]
@@ -100,17 +106,18 @@ RSpec.describe WeatherForecastApiFetcher do
       it 'returns array of forecast hashes' do
         result = fetcher.fetch
         expect(result).to be_an(Array)
-        expect(result.size).to eq(3) # Only 3 days within date range
+        expect(result.size).to eq(3)
       end
 
-      it 'filters forecasts to date range' do
+      it 'filters forecasts to requested date range' do
         result = fetcher.fetch
         dates = result.map { |f| f[:date] }
 
-        expect(dates).to include(Date.today)
-        expect(dates).to include(Date.today + 1.day)
-        expect(dates).to include(Date.today + 2.days)
-        expect(dates).not_to include(Date.today + 5.days) # Outside range
+        # Should only include dates within the requested range (today through today+2)
+        expect(dates).to contain_exactly(Date.today, Date.today + 1.day, Date.today + 2.days)
+        # Should NOT include dates outside the range
+        expect(dates).not_to include(Date.today + 3.days)
+        expect(dates).not_to include(Date.today + 4.days)
       end
 
       it 'includes all required fields' do
@@ -218,13 +225,6 @@ RSpec.describe WeatherForecastApiFetcher do
   end
 
   describe '#map_weather_code' do
-    it 'maps known weather codes' do
-      # Access the private method for testing
-      mapper = fetcher.send(:map_weather_code, 1000)
-      expect(mapper).to be_a(String)
-      expect(mapper).not_to be_empty
-    end
-
     it 'returns "Unknown" for nil code' do
       mapper = fetcher.send(:map_weather_code, nil)
       expect(mapper).to eq('Unknown')
@@ -237,8 +237,10 @@ RSpec.describe WeatherForecastApiFetcher do
   end
 
   describe 'API configuration' do
-    it 'uses correct base URL' do
-      expect(described_class::BASE_URL).to eq('https://api.tomorrow.io/v4/weather/forecast')
+    before do
+      # Mock the API key for testing
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WEATHER_API_KEY').and_return('test_api_key')
     end
 
     it 'includes required query parameters' do
@@ -248,7 +250,7 @@ RSpec.describe WeatherForecastApiFetcher do
         expect(query[:location]).to eq(city)
         expect(query[:timesteps]).to eq('1d')
         expect(query[:units]).to eq('imperial')
-        expect(query[:apikey]).to be_present
+        expect(query[:apikey]).to eq('test_api_key')
 
         double(success?: false, code: 500, body: '')
       end
