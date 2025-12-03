@@ -90,10 +90,14 @@ jobs:
         with:
           bundler-cache: true
 
+      - name: Build Tailwind CSS
+        run: bin/rails tailwindcss:build
+
       - name: Run RSpec Tests
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
+          WEATHER_API_KEY: test_api_key_for_ci
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         # Use bundle exec rspec to run all RSpec tests
