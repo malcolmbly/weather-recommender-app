@@ -8,6 +8,6 @@ class AddDatabaseConstraintsAndIndexes < ActiveRecord::Migration[8.1]
     change_column_null :recommendations, :details, false
 
     # Add unique composite index on trip_forecasts to prevent duplicate joins
-    add_index :trip_forecasts, [:trip_id, :forecast_id], unique: true
+    add_index :trip_forecasts, [ :trip_id, :forecast_id ], unique: true
   end
 end

@@ -113,7 +113,7 @@ RSpec.describe ForecastProcessor do
         trip.reload
 
         expect(trip.forecasts.count).to eq(3)
-        expect(trip.forecasts.pluck(:city).uniq).to eq(['Boston'])
+        expect(trip.forecasts.pluck(:city).uniq).to eq([ 'Boston' ])
       end
 
       it 'returns the forecast records' do
@@ -316,7 +316,7 @@ RSpec.describe ForecastProcessor do
       it 'processes single day correctly' do
         fetcher = instance_double(WeatherForecastApiFetcher)
         allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_return([forecast_data.first.merge(city: 'Miami')])
+        allow(fetcher).to receive(:fetch).and_return([ forecast_data.first.merge(city: 'Miami') ])
 
         result = single_day_processor.process
         single_day_trip.reload
