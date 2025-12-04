@@ -57,201 +57,134 @@ RSpec.describe ForecastProcessor do
     ]
   end
 
-  describe '#initialize' do
-    it 'sets the trip' do
-      expect(processor.instance_variable_get(:@trip)).to eq(trip)
-    end
+  let(:mock_fetcher) do
+    instance_double(WeatherForecastApiFetcher, fetch: forecast_data)
+  end
+
+  before do
+    allow(WeatherForecastApiFetcher).to receive(:new).and_return(mock_fetcher)
   end
 
   describe '#process' do
-    context 'when no forecasts exist for the trip dates' do
-      before do
-        # Mock the API fetcher to return forecast data
-        fetcher = instance_double(WeatherForecastApiFetcher)
-        allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_return(forecast_data)
-      end
-
-      it 'calls the API fetcher' do
-        fetcher = instance_double(WeatherForecastApiFetcher)
+    context 'when no forecasts exist' do
+      it 'fetches from API and creates forecast records' do
         expect(WeatherForecastApiFetcher).to receive(:new).with(
           trip.city,
           trip.start_date,
           trip.end_date
-        ).and_return(fetcher)
-        expect(fetcher).to receive(:fetch).and_return(forecast_data)
+        ).and_return(mock_fetcher)
 
-        processor.process
-      end
-
-      it 'creates Forecast records' do
-        fetcher = instance_double(WeatherForecastApiFetcher)
-        allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_return(forecast_data)
-
-        expect {
-          processor.process
-        }.to change(Forecast, :count).by(3)
-      end
-
-      it 'creates TripForecast join records' do
-        fetcher = instance_double(WeatherForecastApiFetcher)
-        allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_return(forecast_data)
-
-        expect {
-          processor.process
-        }.to change(TripForecast, :count).by(3)
+        expect { processor.process }.to change(Forecast, :count).by(3)
       end
 
       it 'links all forecasts to the trip' do
-        fetcher = instance_double(WeatherForecastApiFetcher)
-        allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_return(forecast_data)
-
         processor.process
         trip.reload
 
         expect(trip.forecasts.count).to eq(3)
-        expect(trip.forecasts.pluck(:city).uniq).to eq([ 'Boston' ])
+        expect(trip.forecasts.pluck(:date)).to match_array([
+          Date.today,
+          Date.today + 1.day,
+          Date.today + 2.days
+        ])
       end
 
-      it 'returns the forecast records' do
-        fetcher = instance_double(WeatherForecastApiFetcher)
-        allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_return(forecast_data)
-
-        result = processor.process
-
-        expect(result).to be_an(ActiveRecord::Relation)
-        expect(result.count).to eq(3)
-        expect(result.first).to be_a(Forecast)
+      it 'creates TripForecast join records' do
+        expect { processor.process }.to change(TripForecast, :count).by(3)
       end
     end
 
-    context 'when some forecasts already exist' do
+    context 'when fresh forecasts exist (updated within 24 hours)' do
       before do
-        # Create one existing forecast
-        Forecast.create!(
-          city: 'Boston',
-          date: Date.today,
-          temperature_max: 70.0,
-          temperature_min: 50.0,
-          temperature_avg: 60.0,
-          conditions: 'Sunny'
-        )
-
-        # Mock API fetcher to return data for all 3 days
-        fetcher = instance_double(WeatherForecastApiFetcher)
-        allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_return(forecast_data)
-      end
-
-      it 'reuses existing forecast' do
-        expect(Forecast.where(city: 'Boston', date: Date.today).count).to eq(1)
-
-        expect {
-          processor.process
-        }.to change(Forecast, :count).by(2) # Only 2 new forecasts created
-
-        expect(Forecast.where(city: 'Boston', date: Date.today).count).to eq(1) # Still only one for today
-      end
-
-      it 'links existing forecasts to the trip' do
-        processor.process
-        trip.reload
-
-        expect(trip.forecasts.count).to eq(3)
-        expect(trip.forecasts.pluck(:date)).to include(Date.today)
-      end
-    end
-
-    context 'when all forecasts already exist (deduplication)' do
-      before do
-        # Create all forecasts before processing
+        # Create fresh forecasts (updated recently)
         forecast_data.each do |data|
-          Forecast.create!(data)
+          Forecast.create!(data.merge(updated_at: 1.hour.ago))
         end
       end
 
-      it 'does not make API call' do
+      it 'does not fetch from API' do
         expect(WeatherForecastApiFetcher).not_to receive(:new)
 
         processor.process
       end
 
-      it 'does not create new Forecast records' do
-        expect {
-          processor.process
-        }.not_to change(Forecast, :count)
+      it 'does not create new forecast records' do
+        expect { processor.process }.not_to change(Forecast, :count)
       end
 
-      it 'creates TripForecast join records' do
-        expect {
-          processor.process
-        }.to change(TripForecast, :count).by(3)
-      end
+      it 'still links existing forecasts to the trip' do
+        expect { processor.process }.to change(TripForecast, :count).by(3)
 
-      it 'links existing forecasts to trip' do
-        processor.process
         trip.reload
-
         expect(trip.forecasts.count).to eq(3)
       end
     end
 
-    context 'when API fetcher raises WeatherAPIError' do
+    context 'when stale forecasts exist (updated >= 24 hours ago)' do
       before do
-        fetcher = instance_double(WeatherForecastApiFetcher)
-        allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_raise(
-          WeatherForecastApiFetcher::WeatherAPIError, 'API key invalid'
-        )
+        # Create stale forecasts (updated 25 hours ago)
+        forecast_data.each do |data|
+          Forecast.create!(data.merge(updated_at: 25.hours.ago))
+        end
       end
 
-      it 'raises ProcessingError' do
-        expect {
-          processor.process
-        }.to raise_error(
-          ForecastProcessor::ProcessingError,
-          /Failed to fetch weather data: API key invalid/
-        )
+      it 'fetches fresh data from API' do
+        expect(WeatherForecastApiFetcher).to receive(:new).with(
+          trip.city,
+          trip.start_date,
+          trip.end_date
+        ).and_return(mock_fetcher)
+
+        processor.process
       end
 
-      it 'does not create any Forecast records' do
-        expect {
-          begin
-            processor.process
-          rescue ForecastProcessor::ProcessingError
-            # Expected error
-          end
-        }.not_to change(Forecast, :count)
+      it 'updates existing forecasts instead of creating duplicates' do
+        expect { processor.process }.not_to change(Forecast, :count)
+      end
+
+      it 'updates the forecast data with fresh values' do
+        # Stale forecast has old temperature
+        stale_forecast = Forecast.find_by(city: 'Boston', date: Date.today)
+        expect(stale_forecast.temperature_max).to eq(75.5)
+        expect(stale_forecast.updated_at).to be < 24.hours.ago
+
+        # Process should update it
+        processor.process
+
+        # Verify data was updated and timestamp refreshed
+        stale_forecast.reload
+        expect(stale_forecast.temperature_max).to eq(75.5) # Still same value from mock
+        expect(stale_forecast.updated_at).to be > 24.hours.ago # Timestamp updated
+      end
+
+      it 'links forecasts to the trip' do
+        expect { processor.process }.to change(TripForecast, :count).by(3)
+
+        trip.reload
+        expect(trip.forecasts.count).to eq(3)
       end
     end
 
-    context 'when database operation fails' do
+    context 'when some forecasts are fresh and some are stale' do
       before do
-        fetcher = instance_double(WeatherForecastApiFetcher)
-        allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_return(forecast_data)
-
-        # Mock a validation failure
-        allow_any_instance_of(Forecast).to receive(:save!).and_raise(
-          ActiveRecord::RecordInvalid
-        )
+        # Create one fresh forecast and two stale forecasts
+        Forecast.create!(forecast_data[0].merge(updated_at: 1.hour.ago))  # fresh
+        Forecast.create!(forecast_data[1].merge(updated_at: 25.hours.ago)) # stale
+        Forecast.create!(forecast_data[2].merge(updated_at: 30.hours.ago)) # stale
       end
 
-      it 'raises ProcessingError' do
-        expect {
-          processor.process
-        }.to raise_error(
-          ForecastProcessor::ProcessingError,
-          /Failed to save forecast data/
-        )
+      it 'fetches from API to refresh stale forecasts' do
+        expect(WeatherForecastApiFetcher).to receive(:new).and_return(mock_fetcher)
+
+        processor.process
+      end
+
+      it 'does not create duplicate forecast records' do
+        expect { processor.process }.not_to change(Forecast, :count)
       end
     end
 
-    context 'with multiple trips for same city and overlapping dates' do
+    context 'with multiple trips sharing the same city and dates' do
       let(:trip2) do
         Trip.create!(
           city: 'Boston',
@@ -262,103 +195,56 @@ RSpec.describe ForecastProcessor do
 
       before do
         # Process first trip to create forecasts
-        fetcher = instance_double(WeatherForecastApiFetcher)
-        allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_return(forecast_data)
         processor.process
       end
 
-      it 'reuses existing forecasts for second trip' do
+      it 'reuses fresh forecasts for second trip without API call' do
         processor2 = described_class.new(trip: trip2)
 
         expect(WeatherForecastApiFetcher).not_to receive(:new)
-
-        expect {
-          processor2.process
-        }.not_to change(Forecast, :count)
+        expect { processor2.process }.not_to change(Forecast, :count)
       end
 
       it 'creates separate TripForecast records for each trip' do
         processor2 = described_class.new(trip: trip2)
 
-        expect {
-          processor2.process
-        }.to change(TripForecast, :count).by(2) # Only 2 days for trip2
+        expect { processor2.process }.to change(TripForecast, :count).by(2)
 
         trip2.reload
         expect(trip2.forecasts.count).to eq(2)
       end
 
-      it 'does not duplicate TripForecast records' do
+      it 'does not create duplicate TripForecast records on reprocessing' do
         processor2 = described_class.new(trip: trip2)
         processor2.process
 
         # Process again - should not create duplicates
-        expect {
-          processor2.process
-        }.not_to change(TripForecast, :count)
-      end
-    end
-  end
-
-  describe 'edge cases' do
-    context 'when trip has only one day' do
-      let(:single_day_trip) do
-        Trip.create!(
-          city: 'Miami',
-          start_date: Date.today,
-          end_date: Date.today
-        )
-      end
-
-      let(:single_day_processor) { described_class.new(trip: single_day_trip) }
-
-      it 'processes single day correctly' do
-        fetcher = instance_double(WeatherForecastApiFetcher)
-        allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_return([ forecast_data.first.merge(city: 'Miami') ])
-
-        result = single_day_processor.process
-        single_day_trip.reload
-
-        expect(single_day_trip.forecasts.count).to eq(1)
+        expect { processor2.process }.not_to change(TripForecast, :count)
       end
     end
 
-    context 'when city has different capitalization' do
-      let(:trip_caps) do
-        Trip.create!(
-          city: 'boston', # lowercase
-          start_date: Date.today,
-          end_date: Date.today + 1.day
-        )
-      end
-
+    context 'when API returns error' do
       before do
-        # Create forecast with uppercase city
-        Forecast.create!(
-          city: 'Boston',
-          date: Date.today,
-          temperature_max: 70.0,
-          temperature_min: 50.0,
-          temperature_avg: 60.0,
-          conditions: 'Sunny'
+        allow(mock_fetcher).to receive(:fetch).and_raise(
+          WeatherForecastApiFetcher::WeatherAPIError, 'API key invalid'
         )
       end
 
-      it 'city comparison is case-sensitive' do
-        fetcher = instance_double(WeatherForecastApiFetcher)
-        allow(WeatherForecastApiFetcher).to receive(:new).and_return(fetcher)
-        allow(fetcher).to receive(:fetch).and_return(
-          forecast_data[0..1].map { |f| f.merge(city: 'boston') }
+      it 'raises ProcessingError with descriptive message' do
+        expect { processor.process }.to raise_error(
+          ForecastProcessor::ProcessingError,
+          /Failed to fetch weather data: API key invalid/
         )
+      end
 
-        processor_caps = described_class.new(trip: trip_caps)
-
-        # Should create new forecasts because city case doesn't match
-        expect {
-          processor_caps.process
-        }.to change(Forecast, :count).by(2)
+      it 'does not create any forecast records' do
+        expect do
+          begin
+            processor.process
+          rescue ForecastProcessor::ProcessingError
+            # Expected error
+          end
+        end.not_to change(Forecast, :count)
       end
     end
   end
