@@ -61,6 +61,13 @@ RSpec.describe ForecastProcessor do
     instance_double(WeatherForecastApiFetcher, fetch: forecast_data)
   end
 
+  let(:stale_duration) { Forecast::STALE_AFTER }
+  let(:fixed_time) { Time.zone.parse('2025-01-01 12:00:00') }
+
+  let(:fresh_updated_at) { fixed_time - stale_duration + 1.hour }
+  let(:stale_updated_at) { fixed_time - stale_duration - 1.hour }
+
+
   before do
     allow(WeatherForecastApiFetcher).to receive(:new).and_return(mock_fetcher)
   end
@@ -75,6 +82,13 @@ RSpec.describe ForecastProcessor do
         ).and_return(mock_fetcher)
 
         expect { processor.process }.to change(Forecast, :count).by(3)
+        created_forecasts = Forecast.last(3)
+
+        expect(created_forecasts).to contain_exactly(
+          have_attributes(date: trip.start_date),
+          have_attributes(date: trip.start_date + 1.days),
+          have_attributes(date: trip.end_date)
+        )
       end
 
       it 'links all forecasts to the trip' do
@@ -94,93 +108,102 @@ RSpec.describe ForecastProcessor do
       end
     end
 
-    context 'when fresh forecasts exist (updated within 24 hours)' do
-      before do
-        # Create fresh forecasts (updated recently)
-        forecast_data.each do |data|
-          Forecast.create!(data.merge(updated_at: 1.hour.ago))
+    context 'when forecast records already exist (freshness checks)' do
+      around do |example|
+        travel_to(fixed_time) do
+          example.run
+        end
+      end
+      context 'when fresh forecasts exist (updated within the deadline)' do
+        before do
+          forecast_data.each do |data|
+            Forecast.create!(data.merge(updated_at: fresh_updated_at))
+          end
+        end
+
+        around do |example|
+          travel_to(fixed_time) do
+            example.run
+          end
+        end
+
+        it 'does not fetch from API' do
+          expect(WeatherForecastApiFetcher).not_to receive(:new)
+
+          processor.process
+        end
+
+        it 'does not create new forecast records' do
+          expect { processor.process }.not_to change(Forecast, :count)
+        end
+
+        it 'still links existing forecasts to the trip' do
+          expect { processor.process }.to change(TripForecast, :count).by(3)
+
+          trip.reload
+          expect(trip.forecasts.count).to eq(3)
         end
       end
 
-      it 'does not fetch from API' do
-        expect(WeatherForecastApiFetcher).not_to receive(:new)
+      context 'when stale forecasts exist (updated >= 24 hours ago)' do
+        before do
+          forecast_data.each do |data|
+            Forecast.create!(data.merge(updated_at: stale_updated_at))
+          end
+        end
 
-        processor.process
-      end
+        it 'fetches fresh data from API' do
+          expect(WeatherForecastApiFetcher).to receive(:new).with(
+            trip.city,
+            trip.start_date,
+            trip.end_date
+          ).and_return(mock_fetcher)
 
-      it 'does not create new forecast records' do
-        expect { processor.process }.not_to change(Forecast, :count)
-      end
+          processor.process
+        end
 
-      it 'still links existing forecasts to the trip' do
-        expect { processor.process }.to change(TripForecast, :count).by(3)
+        it 'updates existing forecasts instead of creating duplicates' do
+          expect { processor.process }.not_to change(Forecast, :count)
+        end
 
-        trip.reload
-        expect(trip.forecasts.count).to eq(3)
-      end
-    end
+        it 'updates the forecast data with fresh values' do
+          # Stale forecast has old temperature
+          stale_forecast = Forecast.find_by(city: 'Boston', date: Date.today)
+          expect(stale_forecast.temperature_max).to eq(75.5)
+          expect(stale_forecast.updated_at).to eq(stale_updated_at)
 
-    context 'when stale forecasts exist (updated >= 24 hours ago)' do
-      before do
-        # Create stale forecasts (updated 25 hours ago)
-        forecast_data.each do |data|
-          Forecast.create!(data.merge(updated_at: 25.hours.ago))
+          processor.process
+
+          stale_forecast.reload
+          expect(stale_forecast.temperature_max).to eq(75.5)
+          expect(stale_forecast.updated_at).to be_within(5.minutes).of(fixed_time)
+        end
+
+        it 'links forecasts to the trip' do
+          expect { processor.process }.to change(TripForecast, :count).by(3)
+
+          trip.reload
+          expect(trip.forecasts.count).to eq(3)
         end
       end
 
-      it 'fetches fresh data from API' do
-        expect(WeatherForecastApiFetcher).to receive(:new).with(
-          trip.city,
-          trip.start_date,
-          trip.end_date
-        ).and_return(mock_fetcher)
+      context 'when some forecasts are fresh and some are stale' do
+        before do
+          # Create one fresh forecast and two stale forecasts
+          Forecast.create!(forecast_data[0].merge(updated_at: fresh_updated_at))  # fresh
+          Forecast.create!(forecast_data[1].merge(updated_at: stale_updated_at)) # stale
+          Forecast.create!(forecast_data[2].merge(updated_at: stale_updated_at)) # stale
+        end
 
-        processor.process
-      end
+        it 'fetches from API to refresh stale forecasts' do
+          expect(WeatherForecastApiFetcher).to receive(:new).and_return(mock_fetcher)
 
-      it 'updates existing forecasts instead of creating duplicates' do
-        expect { processor.process }.not_to change(Forecast, :count)
-      end
+          processor.process
+        end
 
-      it 'updates the forecast data with fresh values' do
-        # Stale forecast has old temperature
-        stale_forecast = Forecast.find_by(city: 'Boston', date: Date.today)
-        expect(stale_forecast.temperature_max).to eq(75.5)
-        expect(stale_forecast.updated_at).to be < 24.hours.ago
-
-        # Process should update it
-        processor.process
-
-        # Verify data was updated and timestamp refreshed
-        stale_forecast.reload
-        expect(stale_forecast.temperature_max).to eq(75.5) # Still same value from mock
-        expect(stale_forecast.updated_at).to be > 24.hours.ago # Timestamp updated
-      end
-
-      it 'links forecasts to the trip' do
-        expect { processor.process }.to change(TripForecast, :count).by(3)
-
-        trip.reload
-        expect(trip.forecasts.count).to eq(3)
-      end
-    end
-
-    context 'when some forecasts are fresh and some are stale' do
-      before do
-        # Create one fresh forecast and two stale forecasts
-        Forecast.create!(forecast_data[0].merge(updated_at: 1.hour.ago))  # fresh
-        Forecast.create!(forecast_data[1].merge(updated_at: 25.hours.ago)) # stale
-        Forecast.create!(forecast_data[2].merge(updated_at: 30.hours.ago)) # stale
-      end
-
-      it 'fetches from API to refresh stale forecasts' do
-        expect(WeatherForecastApiFetcher).to receive(:new).and_return(mock_fetcher)
-
-        processor.process
-      end
-
-      it 'does not create duplicate forecast records' do
-        expect { processor.process }.not_to change(Forecast, :count)
+        it 'does not create duplicate forecast records' do
+          expect { processor.process }.not_to change(Forecast, :count)
+        end
       end
     end
 
@@ -194,7 +217,6 @@ RSpec.describe ForecastProcessor do
       end
 
       before do
-        # Process first trip to create forecasts
         processor.process
       end
 

@@ -1,7 +1,5 @@
 class ForecastProcessor
   class ProcessingError < StandardError; end
-  STALE_RECORD_DEADLINE = 24.hours.ago
-
   def initialize(trip:)
     @trip = trip
   end
@@ -12,7 +10,7 @@ class ForecastProcessor
 
     # Check for existing forecasts and determine which need refreshing
     existing_forecasts = Forecast.where(city: @trip.city, date: date_range)
-    fresh_forecasts = existing_forecasts.where("updated_at >= ?", STALE_RECORD_DEADLINE)
+    fresh_forecasts = existing_forecasts.where.not.stale
     fresh_dates = fresh_forecasts.pluck(:date)
 
     # Fetch forecasts for dates that are missing or stale (updated >= 24 hours ago)

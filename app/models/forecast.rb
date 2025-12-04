@@ -5,4 +5,8 @@ class Forecast < ApplicationRecord
   validates :city, presence: true
   validates :date, presence: true
   validates :city, uniqueness: { scope: :date }
+
+  STALE_AFTER = 24.hours
+
+  scope :stale, -> { where("updated_at < ?", Time.current - STALE_AFTER) }
 end
