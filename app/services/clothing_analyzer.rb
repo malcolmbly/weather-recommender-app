@@ -1,19 +1,22 @@
 class ClothingAnalyzer
   # Temperature thresholds (Fahrenheit - API uses imperial units)
-  VERY_COLD = 41.0    # Below this: heavy winter gear
-  COLD = 50.0         # Below this: cold weather clothing
-  COOL = 68.0         # Below this: light layers
-  WARM = 77.0         # Above this: warm weather clothing
-  HOT = 86.0          # Above this: hot weather clothing
+  # Note: Future enhancement will add metric/imperial toggle in UI
+  VERY_COLD = 41.0    # Below this: heavy winter gear (5°C)
+  COLD = 50.0         # Below this: cold weather clothing (10°C)
+  COOL = 68.0         # Below this: light layers (20°C)
+  WARM = 77.0         # Below this: warm weather clothing (25°C)
+  HOT = 86.0          # Below this: hot weather clothing (30°C)
 
   RAIN_THRESHOLD = 30.0  # Precipitation probability %
   HIGH_UV = 6            # UV index threshold
 
   def initialize(forecasts)
-    @forecasts = forecasts.sort_by(&:date)
+    @forecasts = Array(forecasts).sort_by(&:date)
   end
 
   def analyze
+    return empty_recommendations if @forecasts.empty?
+
     # Returns hash with 5 clothing categories
     {
       outerwear: analyze_outerwear,
@@ -26,12 +29,32 @@ class ClothingAnalyzer
 
   private
 
-  def temp_range
-    @temp_range ||= {
-      min: @forecasts.map(&:temperature_min).compact.min,
-      max: @forecasts.map(&:temperature_max).compact.max,
-      avg: @forecasts.map(&:temperature_avg).compact.sum / @forecasts.count
+  def empty_recommendations
+    {
+      outerwear: "No data available",
+      tops: "No data available",
+      bottoms: "No data available",
+      footwear: "No data available",
+      accessories: "No data available"
     }
+  end
+
+  def temp_range
+    @temp_range ||= begin
+      temps_min = @forecasts.map(&:temperature_min).compact
+      temps_max = @forecasts.map(&:temperature_max).compact
+      temps_avg = @forecasts.map(&:temperature_avg).compact
+
+      {
+        min: temps_min.min,
+        max: temps_max.max,
+        avg: temps_avg.any? ? temps_avg.sum / temps_avg.size : 0
+      }
+    end
+  end
+
+  def max_uv_index
+    @max_uv_index ||= @forecasts.map(&:uv_index_max).compact.max || 0
   end
 
   def will_rain?
@@ -66,8 +89,10 @@ class ClothingAnalyzer
       "Thermal base layers and long-sleeve sweaters"
     elsif avg_temp < COLD
       "Long-sleeve shirts and sweaters"
-    elsif avg_temp < WARM
+    elsif avg_temp < COOL
       "Long-sleeve shirts or light sweaters"
+    elsif avg_temp < WARM
+      "T-shirts, polo shirts, and light tops"
     else
       "T-shirts, tank tops, and breathable fabrics"
     end
@@ -100,7 +125,9 @@ class ClothingAnalyzer
 
     items << "Umbrella" if will_rain?
     items << "Hat, scarf, and gloves" if temp_range[:min] < VERY_COLD
-    items << "Sunglasses and sunscreen (UV index #{@forecasts.map(&:uv_index_max).compact.max})" if high_uv? || temp_range[:max] > WARM
+    if high_uv? || temp_range[:max] > WARM
+      items << "Sunglasses and sunscreen (UV index #{max_uv_index})"
+    end
 
     items.any? ? items.join(", ") : "No special accessories needed"
   end

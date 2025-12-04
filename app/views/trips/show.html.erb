@@ -80,7 +80,7 @@
   </div>
 
   <!-- Weather Forecast Section -->
-  <% if @trip.ready? && @trip.forecasts.any? %>
+  <% if @trip.forecasts.any? %>
     <div class="bg-white rounded-lg shadow-md p-8 mb-6">
       <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
         <span class="mr-2">🌤️</span>
@@ -136,7 +136,7 @@
   <% end %>
 
   <!-- Recommendations Section -->
-  <% if @trip.ready? && @trip.recommendations.any? %>
+  <% if @trip.recommendations.any? %>
     <div class="bg-white rounded-lg shadow-md p-8 mb-6">
       <h2 class="text-2xl font-bold text-gray-900 mb-2 flex items-center">
         <span class="mr-2">🎒</span>

@@ -17,6 +17,11 @@ class Trip < ApplicationRecord
   validate :end_date_after_start_date
   validate :reasonable_trip_duration
 
+  def duration_in_days
+    return 0 unless start_date && end_date
+    (end_date - start_date).to_i + 1
+  end
+
   private
   def end_date_after_start_date
     return unless start_date && end_date
@@ -29,10 +34,5 @@ class Trip < ApplicationRecord
     unless (1..14).cover?(duration)
       errors.add(:base, "Trip duration must be between 1 and 14 days (currently #{duration} days)")
     end
-  end
-
-  def duration_in_days
-    return 0 unless start_date && end_date
-    (end_date - start_date).to_i + 1
   end
 end
