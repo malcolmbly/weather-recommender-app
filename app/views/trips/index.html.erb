@@ -1,46 +1,78 @@
-<div class="p-4 sm:p-6 lg:p-8">
-    <div class="sm:flex sm:items-center">
-        <div class="sm:flex-auto">
-            <h1 class="text-3xl font-semibold text-gray-900">Listing Trips</h1>
-        </div>
-        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <%= link_to "New trip", new_trip_path, class: "inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" %>
-        </div>
+<div class="max-w-6xl mx-auto">
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">My Trips</h1>
+      <p class="text-gray-600 mt-1">View and manage all your planned trips</p>
     </div>
+    <%= link_to new_trip_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition shadow-md hover:shadow-lg" do %>
+      <span class="flex items-center">
+        <span class="mr-2">✈️</span>
+        Plan New Trip
+      </span>
+    <% end %>
+  </div>
 
-    <div class="mt-8 flow-root">
-        <div class="align-middle inline-block min-w-full border-b border-gray-200 shadow overflow-hidden sm:rounded-lg">
-            
-            <table class="min-w-full divide-y divide-gray-300">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Destination</th>
-                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Start Date</th>
-                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">End Date</th>
-                        <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6" colspan="2">
-                            <span class="sr-only">Actions</span>
-                        </th>
-                    </tr>
-                </thead>
-                
-                <tbody class="divide-y divide-gray-200 bg-white">
-                    <% @trips.each do |trip| %>
-                    <tr class="<%= cycle('bg-white', 'bg-gray-50') %> hover:bg-gray-100">
-                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6"><%= trip.city %></td>
-                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><%= trip.start_date %></td>
-                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><%= trip.end_date %></td>
-                        
-                        <td class="relative whitespace-nowrap py-4 pl-3 pr-3 text-right text-sm font-medium sm:pr-6">
-                            <%= link_to "Show", trip, class: "text-indigo-600 hover:text-indigo-900" %>
-                        </td>
-                        
-                        <td class="relative whitespace-nowrap py-4 pr-4 text-left text-sm font-medium sm:pr-6">
-                            <%= link_to "Destroy", trip, data: { turbo_method: :delete, turbo_confirm: "Are you sure?" }, class: "text-red-600 hover:text-red-900 ml-2" %>
-                        </td>
-                    </tr>
-                    <% end %>
-                </tbody>
-            </table>
+  <% if @trips.any? %>
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <% @trips.each do |trip| %>
+        <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition overflow-hidden">
+          <!-- Trip Header -->
+          <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6">
+            <h2 class="text-2xl font-bold mb-2"><%= trip.city %></h2>
+            <p class="text-blue-100">
+              <%= trip.start_date.strftime("%b %d") %> - <%= trip.end_date.strftime("%b %d, %Y") %>
+            </p>
+          </div>
+
+          <!-- Trip Body -->
+          <div class="p-6">
+            <!-- Status Badge -->
+            <div class="mb-4">
+              <% case trip.status %>
+              <% when 'pending' %>
+                <span class="inline-flex items-center bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  <span class="mr-1">⏳</span>
+                  Pending
+                </span>
+              <% when 'processing' %>
+                <span class="inline-flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  <span class="mr-1">🔄</span>
+                  Processing
+                </span>
+              <% when 'ready' %>
+                <span class="inline-flex items-center bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  <span class="mr-1">✅</span>
+                  Ready
+                </span>
+              <% when 'failed' %>
+                <span class="inline-flex items-center bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  <span class="mr-1">❌</span>
+                  Failed
+                </span>
+              <% end %>
+            </div>
+
+            <!-- View Button -->
+            <%= link_to trip_path(trip), class: "block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition text-center" do %>
+              View Details →
+            <% end %>
+          </div>
         </div>
+      <% end %>
     </div>
+  <% else %>
+    <div class="bg-white rounded-lg shadow-md p-12 text-center">
+      <div class="mb-6">
+        <span class="text-6xl">✈️</span>
+      </div>
+      <h2 class="text-2xl font-bold text-gray-900 mb-2">No trips planned yet</h2>
+      <p class="text-gray-600 mb-6">Start planning your next adventure and get personalized packing recommendations!</p>
+      <%= link_to new_trip_path, class: "inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition shadow-md hover:shadow-lg" do %>
+        <span class="flex items-center">
+          <span class="mr-2">+</span>
+          Plan Your First Trip
+        </span>
+      <% end %>
+    </div>
+  <% end %>
 </div>

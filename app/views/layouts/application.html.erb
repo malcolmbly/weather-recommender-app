@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "Clothing Recommender" %></title>
+    <title><%= content_for(:title) || "Travel Outfit Planner" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="App">
@@ -23,9 +23,52 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
-    <main class="container mx-auto mt-28 px-5 flex">
+  <body class="bg-gray-50 min-h-screen">
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-md">
+      <div class="container mx-auto px-6 py-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl">✈️</span>
+            <%= link_to "Travel Outfit Planner", root_path, class: "text-xl font-bold text-blue-600 hover:text-blue-700" %>
+          </div>
+          <div class="flex items-center space-x-4">
+            <%= link_to "My Trips", trips_path, class: "text-gray-700 hover:text-blue-600 font-medium transition" %>
+            <%= link_to "Plan New Trip", new_trip_path, class: "bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition" %>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <% if notice.present? %>
+      <div class="container mx-auto px-6 py-4">
+        <div class="bg-blue-50 border-l-4 border-blue-600 text-blue-800 p-4 rounded-md shadow-sm">
+          <%= notice %>
+        </div>
+      </div>
+    <% end %>
+
+    <% if alert.present? %>
+      <div class="container mx-auto px-6 py-4">
+        <div class="bg-red-50 border-l-4 border-red-600 text-red-800 p-4 rounded-md shadow-sm">
+          <%= alert %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
       <%= yield %>
     </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+      <div class="container mx-auto px-6 py-6">
+        <p class="text-center text-gray-600 text-sm">
+          Travel Outfit Planner - Plan your perfect travel wardrobe with weather forecasts
+        </p>
+      </div>
+    </footer>
   </body>
 </html>
