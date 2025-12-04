@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
+include ActiveSupport::Testing::TimeHelpers
 
 RSpec.describe ForecastProcessor do
   let(:trip) do
@@ -118,12 +119,6 @@ RSpec.describe ForecastProcessor do
         before do
           forecast_data.each do |data|
             Forecast.create!(data.merge(updated_at: fresh_updated_at))
-          end
-        end
-
-        around do |example|
-          travel_to(fixed_time) do
-            example.run
           end
         end
 

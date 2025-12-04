@@ -13,7 +13,7 @@ class TripsController < ApplicationController
       # Enqueue background job to fetch weather and generate recommendations
       ForecastFetcherJob.perform_later(@trip.id)
 
-      redirect_to @trip, notice: 'Trip created! Fetching weather data and generating recommendations...'
+      redirect_to @trip, notice: "Trip created! Fetching weather data and generating recommendations..."
     else
       render :new, status: :unprocessable_entity
     end
@@ -26,7 +26,7 @@ class TripsController < ApplicationController
 
   def destroy
     Trip.find(params[:id]).destroy
-    redirect_to trips_path, notice: 'Trip deleted.'
+    redirect_to trips_path, notice: "Trip deleted."
   end
 
   private

@@ -8,5 +8,5 @@ class Forecast < ApplicationRecord
 
   STALE_AFTER = 24.hours
 
-  scope :stale, -> { where("updated_at < ?", Time.current - STALE_AFTER) }
+  scope :fresh, -> { where("updated_at > ?", Time.current - STALE_AFTER) }
 end
