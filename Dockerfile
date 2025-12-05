@@ -1,14 +1,15 @@
 # syntax=docker/dockerfile:1
 # check=error=true
 
-# This Dockerfile is designed for production, not development. Use with Kamal or build'n'run by hand:
-# docker build -t app .
-# docker run -d -p 80:80 -e RAILS_MASTER_KEY=<value from config/master.key> --name app app
+# This Dockerfile supports both development (docker-compose) and production (Render) environments
+# Development: docker compose up (uses volume mounts, all gems included)
+# Production: Render deployment (production-only gems, precompiled assets)
 
-# For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
-
-# Make sure RUBY_VERSION matches the Ruby version in .ruby-version
+# Build arguments for environment-specific configuration
 ARG RUBY_VERSION=3.4.7
+ARG RAILS_ENV=production
+
+# Base stage with Ruby
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here
@@ -20,15 +21,15 @@ RUN apt-get update -qq && \
     ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Set production environment variables and enable jemalloc for reduced memory usage and latency.
-ENV RAILS_ENV="production" \
-    BUNDLE_DEPLOYMENT="1" \
-    BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLE_WITHOUT="development" \
+# Set environment variables
+ENV BUNDLE_PATH="/usr/local/bundle" \
     LD_PRELOAD="/usr/local/lib/libjemalloc.so"
 
 # Throw-away build stage to reduce size of final image
 FROM base AS build
+
+# Pass build arg to this stage
+ARG RAILS_ENV
 
 # Install packages needed to build gems
 RUN apt-get update -qq && \
@@ -36,23 +37,33 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install application gems
-COPY Gemfile Gemfile.lock vendor ./
+COPY Gemfile Gemfile.lock ./
+COPY vendor ./vendor
 
-RUN bundle install && \
+# Install gems based on environment
+# Production: exclude development/test gems for smaller image
+# Development/Test: include all gems for docker-compose
+RUN if [ "$RAILS_ENV" = "production" ]; then \
+      bundle config set --local deployment 'true' && \
+      bundle config set --local without 'development test'; \
+    fi && \
+    bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
-    # -j 1 disable parallel compilation to avoid a QEMU bug: https://github.com/rails/bootsnap/issues/495
     bundle exec bootsnap precompile -j 1 --gemfile
 
 # Copy application code
 COPY . .
 
-RUN chmod +x ./bin/rails ./bin/jobs
-# Precompile bootsnap code for faster boot times.
-# -j 1 disable parallel compilation to avoid a QEMU bug: https://github.com/rails/bootsnap/issues/495
+# Make all bin scripts executable
+RUN chmod +x ./bin/* || true
+
+# Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile -j 1 app/ lib/
 
-# Precompiling assets for production without requiring secret RAILS_MASTER_KEY
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+# Precompile assets only for production
+RUN if [ "$RAILS_ENV" = "production" ]; then \
+      SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile; \
+    fi
 
 
 # Final stage for app image

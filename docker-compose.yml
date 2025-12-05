@@ -7,10 +7,18 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: app_development
+    ports:
+      - "5432:5432"
+
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        RAILS_ENV: development  # Build with all gems for development
     volumes:
-      - .:/rails
+      - .:/rails  # Mount code for live reloading
+      - bundle_data:/usr/local/bundle  # Persist gems across container restarts
     ports:
       - "3000:3000"
     depends_on:
@@ -21,7 +29,10 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: app_development
-
     command: "bin/dev"
+    stdin_open: true
+    tty: true
+
 volumes:
   postgres_data:
+  bundle_data:

@@ -1,9 +1,53 @@
 #!/bin/bash -e
 
-# If running the rails server then create or migrate existing database
+# Prepare database and load Solid Queue schema for any Rails command that needs it
+# This handles:
+# - Production: Uses DISABLE_DATABASE_ENVIRONMENT_CHECK=1 for initial schema load
+# - Development: Uses standard db:schema:load:queue
+# - Test environment: works with RAILS_ENV=test
+
+should_prepare_db=false
+
+# Check if running Rails server (production or development)
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
+  should_prepare_db=true
+fi
+
+# Check if running worker (production)
+if [ "${1}" == "./bin/jobs" ] || [ "${1}" == "bin/jobs" ]; then
+  should_prepare_db=true
+fi
+
+# Check if running bin/dev (local development with foreman)
+if [ "${1}" == "bin/dev" ] || [ "${1}" == "./bin/dev" ]; then
+  should_prepare_db=true
+fi
+
+# Prepare database if needed
+if [ "$should_prepare_db" = true ]; then
+  echo "Preparing database for ${RAILS_ENV:-production} environment..."
+
+  # Always run db:prepare to ensure database and tables exist
   ./bin/rails db:prepare
-  ./bin/rails db:schema:load:queue
+
+  # Load Solid Queue schema
+  # For production first deploy, we need to bypass the environment check
+  # Subsequent deploys will skip this if tables already exist
+  if [ "${RAILS_ENV}" = "production" ]; then
+    echo "Ensuring Solid Queue tables exist in production..."
+    # Check if solid_queue_jobs table exists
+    if ! ./bin/rails runner "ActiveRecord::Base.connection.table_exists?('solid_queue_jobs')" 2>/dev/null; then
+      echo "Creating Solid Queue tables (first deploy)..."
+      DISABLE_DATABASE_ENVIRONMENT_CHECK=1 ./bin/rails db:schema:load:queue
+    else
+      echo "Solid Queue tables already exist, skipping schema load."
+    fi
+  else
+    echo "Loading Solid Queue schema for ${RAILS_ENV}..."
+    ./bin/rails db:schema:load:queue
+  fi
+
+  echo "Database ready."
 fi
 
 exec "${@}"
