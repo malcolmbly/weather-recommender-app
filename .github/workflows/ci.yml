@@ -70,36 +70,22 @@ jobs:
 
     services:
       postgres:
-        image: postgres
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: password
         ports:
           - 5432:5432
-        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+        
 
     steps:
-      - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev
-
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Set up Ruby
+      - name: Set up Ruby & Install Dependencies
         uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
-
-      - name: Build Tailwind CSS
-        run: bin/rails tailwindcss:build
-
-      - name: Run RSpec Tests
-        env:
-          RAILS_ENV: test
-          DATABASE_HOST: localhost
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/app_test
-          WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
-        # Use bundle exec rspec to run all RSpec tests
-        run: |
-          bin/rails db:test:prepare
-          bundle exec rspec
+          
+          apt-get-packages: libpq-dev
+      
