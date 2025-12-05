@@ -41,7 +41,10 @@
 
 # Ignore Claude Code local settings and cache
 .claude/
-CLAUDE.mdDEPLOYMENT_IMPROVEMENTS_SUMMARY.md
+DEPLOYMENT_IMPROVEMENTS_SUMMARY.md
 PRODUCTION_DATABASE_FIX.md
 DEPLOYMENT_IMPROVEMENTS_SUMMARY.md
 CLAUDE.md
+
+# Ignore SimpleCov
+coverage/
