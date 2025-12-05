@@ -35,6 +35,7 @@ User Creates Trip → ForecastFetcherJob → RecommendationAnalyzerJob → Displ
 ```bash
 docker compose up --build
 # Visit http://localhost:3000
+# Note: there may be a need to make a script executable with chmod if you run into an error.
 ```
 
 **Local Development:**
@@ -48,8 +49,6 @@ bin/dev  # Starts Rails server + Tailwind CSS + Solid Queue worker
 ```bash
 # Run full test suite
 docker compose run -e RAILS_ENV=test web bundle exec rspec
-
-# Results: 129 examples, 0 failures
 ```
 
 ## Tech Stack
@@ -64,18 +63,3 @@ docker compose run -e RAILS_ENV=test web bundle exec rspec
 | Testing | RSpec + FactoryBot |
 | External API | Tomorrow.io Weather API |
 | Deployment | Docker + Render.com |
-
-## Documentation
-
-- `CLAUDE.md` - Quick reference guide
-- `docs/IMPLEMENTATION_GUIDE.md` - Step-by-step implementation
-- `docs/TESTING_GUIDE.md` - Comprehensive testing patterns
-- `docs/RENDER_DEPLOYMENT.md` - Production deployment guide
-
-## Project Status
-
-✅ **MVP Complete** - Full CRUD operations, background processing, comprehensive test coverage
-
----
-
-**License:** Academic use only
