@@ -1,7 +1,9 @@
 # Travel Outfit Planner (TOP)
 
-> **Academic Project:** Master's degree coursework for "Applications of Software Architecture for Big Data"
-> **Author:** Malcolm Bailey (solo project)
+**Academic Project:** Master's degree coursework for "Applications of Software Architecture for Big Data"
+
+
+**Author:** Malcolm Bailey
 
 A Rails web application that fetches weather forecasts and generates intelligent clothing recommendations for travel itineraries. Demonstrates enterprise software architecture patterns including asynchronous job processing, event-driven workflows, and external API integration.
 
