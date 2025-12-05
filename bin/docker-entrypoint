@@ -27,34 +27,15 @@ fi
 if [ "$should_prepare_db" = true ]; then
   echo "Preparing database for ${RAILS_ENV:-production} environment..."
 
-  # Always run db:prepare to ensure database and tables exist
+  # Prepare database and run migrations
+  # Since we're using a single database for both app and queue tables,
+  # db:prepare + db:migrate handles everything (no need for separate queue schema loading)
+
+  echo "Preparing database (creating if needed)..."
   ./bin/rails db:prepare
 
-  # Load Solid Queue schema
-  # For production first deploy, we need to bypass the environment check
-  # Subsequent deploys will skip this if tables already exist
-  if [ "${RAILS_ENV}" = "production" ]; then
-    echo "Ensuring Solid Queue tables exist in production..."
-    # Check if all critical Solid Queue tables exist (check multiple to be thorough)
-    tables_exist=true
-    for table in solid_queue_jobs solid_queue_recurring_tasks solid_queue_processes; do
-      if ! ./bin/rails runner "ActiveRecord::Base.connection.table_exists?('${table}')" 2>/dev/null; then
-        tables_exist=false
-        echo "Missing table: ${table}"
-        break
-      fi
-    done
-
-    if [ "$tables_exist" = false ]; then
-      echo "Creating Solid Queue tables (first deploy or missing tables)..."
-      DISABLE_DATABASE_ENVIRONMENT_CHECK=1 ./bin/rails db:schema:load:queue
-    else
-      echo "All Solid Queue tables exist, skipping schema load."
-    fi
-  else
-    echo "Loading Solid Queue schema for ${RAILS_ENV}..."
-    ./bin/rails db:schema:load:queue
-  fi
+  echo "Running migrations (includes Solid Queue tables)..."
+  ./bin/rails db:migrate
 
   echo "Database ready."
 fi

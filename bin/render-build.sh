@@ -6,8 +6,6 @@ bundle install
 bin/rails assets:precompile
 bin/rails assets:clean
 
-# Run migrations for primary database
+# Run migrations (includes both app tables and Solid Queue tables)
+# Since we're using a single database, db:migrate handles everything
 bin/rails db:migrate
-
-# Load Solid Queue schema into the queue database (same as primary in production)
-bin/rails db:schema:load:queue
