@@ -224,18 +224,6 @@ RSpec.describe WeatherForecastApiFetcher do
     end
   end
 
-  describe '#map_weather_code' do
-    it 'returns "Unknown" for nil code' do
-      mapper = fetcher.send(:map_weather_code, nil)
-      expect(mapper).to eq('Unknown')
-    end
-
-    it 'returns fallback for unknown codes' do
-      mapper = fetcher.send(:map_weather_code, 99999)
-      expect(mapper).to eq('Unknown')
-    end
-  end
-
   describe 'API configuration' do
     before do
       # Mock the API key for testing

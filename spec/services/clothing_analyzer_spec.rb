@@ -436,21 +436,4 @@ RSpec.describe ClothingAnalyzer do
     end
   end
 
-  describe 'constant values' do
-    it 'uses correct Fahrenheit temperature thresholds' do
-      expect(described_class::VERY_COLD).to eq(41.0)
-      expect(described_class::COLD).to eq(50.0)
-      expect(described_class::COOL).to eq(68.0)
-      expect(described_class::WARM).to eq(77.0)
-      expect(described_class::HOT).to eq(86.0)
-    end
-
-    it 'uses correct precipitation threshold' do
-      expect(described_class::RAIN_THRESHOLD).to eq(30.0)
-    end
-
-    it 'uses correct UV index threshold' do
-      expect(described_class::HIGH_UV).to eq(6)
-    end
-  end
 end

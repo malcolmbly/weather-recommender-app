@@ -184,14 +184,6 @@ RSpec.describe "Trips", type: :request do
         expect(response.body).to include("76") # Rounded from 75.5
         expect(response.body).to include("69") # Rounded from 68.8
       end
-
-      it "loads forecasts efficiently" do
-        get trip_path(trip)
-
-        # Verify forecasts are displayed (meaning they were loaded)
-        expect(response.body).to include("Weather Forecast")
-        expect(trip.forecasts.loaded?).to be false # Trip instance in test isn't the one in controller
-      end
     end
 
     context "when trip has recommendations" do

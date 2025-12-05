@@ -83,6 +83,6 @@ services:
 databases:
   - name: travel-outfit-planner-db
     databaseName: travel_outfit_planner_production
-    plan: starter  # Choose: free, starter, standard, pro
+    plan: free  # Choose: free, starter, standard, pro
     region: oregon  # Should match services region
     # ipAllowList omitted = allow connections from Render services only
