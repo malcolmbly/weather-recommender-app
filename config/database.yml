@@ -23,10 +23,10 @@ default: &default
 development:
   primary: &primary_development
     <<: *default
-    database: app_development
+    database: <%= ENV.fetch("POSTGRES_DB") { "app_development" } %>
     host: <%= ENV.fetch("DATABASE_HOST") { "db" } %>
-    username: postgres
-    password: password
+    username: <%= ENV.fetch("POSTGRES_USER") { "postgres" } %>
+    password: <%= ENV.fetch("POSTGRES_PASSWORD") { "password" } %>
   queue:
     <<: *primary_development
 
@@ -55,10 +55,10 @@ development:
 test:
   primary: &primary_test
     <<: *default
-    database: app_test
+    database: <%= ENV.fetch("POSTGRES_DB") { "app_test" } %>
     host: <%= ENV.fetch("DATABASE_HOST") { "db" } %>
-    username: postgres
-    password: password
+    username: <%= ENV.fetch("POSTGRES_USER") { "postgres" } %>
+    password: <%= ENV.fetch("POSTGRES_PASSWORD") { "password" } %>
   queue:
     <<: *primary_test
 
