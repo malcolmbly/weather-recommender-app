@@ -50,7 +50,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     dockerCommand: bin/jobs  # Override default CMD to run Solid Queue worker
-    plan: free  # Choose: free, starter, standard, pro (can be smaller than web)
+    plan: starter  # Choose: starter, standard, pro (can be smaller than web)
     region: oregon  # Should match web service region
     branch: main
 
