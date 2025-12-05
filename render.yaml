@@ -8,7 +8,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    plan: starter  # Choose: free, starter, standard, pro
+    plan: free  # Choose: free, starter, standard, pro
     region: oregon  # Choose your preferred region
     branch: main
 
