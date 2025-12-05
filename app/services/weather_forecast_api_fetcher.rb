@@ -48,7 +48,7 @@ class WeatherForecastApiFetcher
   end
 
   def api_key
-    ENV["WEATHER_API_KEY"] || Rails.application.credentials.dig(:external_apis, :weather_forecast, :api_key)
+    ENV["WEATHER_API_KEY"] || Rails.application.credentials.dig(:weather_api, :key)
   end
 
   def parse_response(response)

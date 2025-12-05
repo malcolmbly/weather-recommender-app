@@ -1,0 +1,88 @@
+# Render.yaml - Production deployment configuration for Render.com
+# This defines the infrastructure for the Travel Outfit Planner app
+
+services:
+  # Web Service - Rails application server
+  - type: web
+    name: travel-outfit-planner-web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter  # Choose: free, starter, standard, pro
+    region: oregon  # Choose your preferred region
+    branch: main
+
+    # Health check endpoint
+    healthCheckPath: /up
+
+    # Auto-deploy on push to main branch
+    autoDeploy: yes
+
+    # Environment variables for web service
+    envVars:
+      - key: RAILS_ENV
+        value: production
+
+      - key: RAILS_LOG_TO_STDOUT
+        value: true
+
+      - key: RAILS_SERVE_STATIC_FILES
+        value: true
+
+      # Database connection (auto-populated by Render)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: travel-outfit-planner-db
+          property: connectionString
+
+      # Weather API key (set manually in Render dashboard or via sync: false)
+      - key: WEATHER_API_KEY
+        sync: false  # Must be set manually in Render dashboard
+
+      # Rails master key for credentials (set manually or use secret file)
+      - key: RAILS_MASTER_KEY
+        sync: false  # Must be set manually in Render dashboard
+
+  # Background Worker Service - Solid Queue job processor
+  - type: worker
+    name: travel-outfit-planner-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: bin/jobs  # Override default CMD to run Solid Queue worker
+    plan: starter  # Choose: free, starter, standard, pro (can be smaller than web)
+    region: oregon  # Should match web service region
+    branch: main
+
+    # Auto-deploy on push to main branch
+    autoDeploy: yes
+
+    # Environment variables for worker (must match web service)
+    envVars:
+      - key: RAILS_ENV
+        value: production
+
+      - key: RAILS_LOG_TO_STDOUT
+        value: true
+
+      # Database connection (same database as web service)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: travel-outfit-planner-db
+          property: connectionString
+
+      # Weather API key (must match web service)
+      - key: WEATHER_API_KEY
+        sync: false  # Must be set manually in Render dashboard
+
+      # Rails master key (must match web service)
+      - key: RAILS_MASTER_KEY
+        sync: false  # Must be set manually in Render dashboard
+
+# Database - PostgreSQL for application data + Solid Queue tables
+databases:
+  - name: travel-outfit-planner-db
+    databaseName: travel_outfit_planner_production
+    plan: starter  # Choose: free, starter, standard, pro
+    region: oregon  # Should match services region
+    # ipAllowList omitted = allow connections from Render services only
