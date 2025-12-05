@@ -27,8 +27,10 @@ class ForecastProcessor
 
     all_forecasts
   rescue WeatherForecastApiFetcher::WeatherAPIError => e
+    Sentry.capture_exception(e, extra: { trip_id: @trip.id, city: @trip.city })
     raise ProcessingError, "Failed to fetch weather data: #{e.message}"
   rescue ActiveRecord::RecordInvalid => e
+    Sentry.capture_exception(e, extra: { trip_id: @trip.id, city: @trip.city })
     raise ProcessingError, "Failed to save forecast data: #{e.message}"
   end
 

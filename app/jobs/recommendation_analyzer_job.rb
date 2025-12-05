@@ -33,6 +33,7 @@ class RecommendationAnalyzerJob < ApplicationJob
     end
   rescue StandardError => e
     Rails.logger.error("Analysis failed for trip #{trip_id}: #{e.message}")
+    Sentry.capture_exception(e, extra: { trip_id: trip_id, forecast_count: trip.forecasts.count })
     trip.update!(status: :failed)
     raise  # Re-raise to let Solid Queue retry mechanism handle it
   end

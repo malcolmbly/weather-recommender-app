@@ -21,10 +21,12 @@ class ForecastFetcherJob < ApplicationJob
     end
   rescue ForecastProcessor::ProcessingError => e
     Rails.logger.error("Forecast fetch failed for trip #{trip_id}: #{e.message}")
+    Sentry.capture_exception(e, extra: { trip_id: trip_id, city: trip.city })
     trip.update!(status: :failed)
     raise # Let Solid Queue retry mechanism handle it
   rescue StandardError => e
     Rails.logger.error("Unexpected error in ForecastFetcherJob for trip #{trip_id}: #{e.message}")
+    Sentry.capture_exception(e, extra: { trip_id: trip_id, job: 'ForecastFetcherJob' })
     trip.update!(status: :failed)
     raise
   end

@@ -1,5 +1,6 @@
 require "httparty"
 
+
 class WeatherForecastApiFetcher
   class WeatherAPIError < StandardError; end
   BASE_URL = "https://api.tomorrow.io/v4/weather/forecast"
@@ -18,6 +19,7 @@ class WeatherForecastApiFetcher
     response = make_request
     parse_response(response)
   rescue HTTParty::Error, SocketError, Timeout::Error => e
+    Sentry.capture_exception(e)
     raise WeatherAPIError, "Failed to fetch weather data: #{e.message}"
   end
 
