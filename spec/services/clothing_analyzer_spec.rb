@@ -435,5 +435,4 @@ RSpec.describe ClothingAnalyzer do
       end
     end
   end
-
 end
