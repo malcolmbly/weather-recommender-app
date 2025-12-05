@@ -1,6 +1,6 @@
 # Load the weather codes mapping from the YAML file into a constant.
 # This ensures the mapping is loaded only once when the application starts.
-MAPPING_FILE = Rails.root.join("config", "weather_codes.yml")
+MAPPING_FILE = Rails.root.join("config", "tomorrow_weather_codes.yml")
 
 if File.exist?(MAPPING_FILE)
   # YAML.safe_load loads the file contents securely
