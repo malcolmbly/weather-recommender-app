@@ -35,12 +35,21 @@ if [ "$should_prepare_db" = true ]; then
   # Subsequent deploys will skip this if tables already exist
   if [ "${RAILS_ENV}" = "production" ]; then
     echo "Ensuring Solid Queue tables exist in production..."
-    # Check if solid_queue_jobs table exists
-    if ! ./bin/rails runner "ActiveRecord::Base.connection.table_exists?('solid_queue_jobs')" 2>/dev/null; then
-      echo "Creating Solid Queue tables (first deploy)..."
+    # Check if all critical Solid Queue tables exist (check multiple to be thorough)
+    tables_exist=true
+    for table in solid_queue_jobs solid_queue_recurring_tasks solid_queue_processes; do
+      if ! ./bin/rails runner "ActiveRecord::Base.connection.table_exists?('${table}')" 2>/dev/null; then
+        tables_exist=false
+        echo "Missing table: ${table}"
+        break
+      fi
+    done
+
+    if [ "$tables_exist" = false ]; then
+      echo "Creating Solid Queue tables (first deploy or missing tables)..."
       DISABLE_DATABASE_ENVIRONMENT_CHECK=1 ./bin/rails db:schema:load:queue
     else
-      echo "Solid Queue tables already exist, skipping schema load."
+      echo "All Solid Queue tables exist, skipping schema load."
     fi
   else
     echo "Loading Solid Queue schema for ${RAILS_ENV}..."
