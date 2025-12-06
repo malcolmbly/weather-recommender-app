@@ -26,7 +26,7 @@ class ForecastFetcherJob < ApplicationJob
     raise # Let Solid Queue retry mechanism handle it
   rescue StandardError => e
     Rails.logger.error("Unexpected error in ForecastFetcherJob for trip #{trip_id}: #{e.message}")
-    Sentry.capture_exception(e, extra: { trip_id: trip_id, job: 'ForecastFetcherJob' })
+    Sentry.capture_exception(e, extra: { trip_id: trip_id, job: "ForecastFetcherJob" })
     trip.update!(status: :failed)
     raise
   end
