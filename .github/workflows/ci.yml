@@ -99,13 +99,7 @@ jobs:
           bin/rails db:test:prepare
           bundle exec rspec
 
-      - name: Check SimpleCov Coverage Threshold (NEW STEP) 
+      - name: Check SimpleCov Coverage Threshold (NEW STEP)
         run: |
-          # This command executes the SimpleCov check.
-          # The threshold value is defined in your SimpleCov config 
-          # (e.g., in `spec/spec_helper.rb` or `rails_helper.rb`)
           # If the coverage is below the configured minimum, this command will fail the CI.
-          bundle exec ruby -e '
-            require "simplecov"
-            SimpleCov.start
-            SimpleCov.collate Dir["coverage/.resultset.json"]
+          bundle exec ruby -e 'require "simplecov"; SimpleCov.start; SimpleCov.collate Dir["coverage/.resultset.json"]'
