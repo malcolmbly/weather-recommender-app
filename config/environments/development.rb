@@ -32,7 +32,7 @@ Rails.application.configure do
   config.active_storage.service = :local
 
   # Disable variant processor (no image uploads in this app, image_processing gem not installed)
-  config.active_storage.variant_processor = nil
+  config.active_storage.variant_processor = :disabled
 
   # Don't care if the mailer can't send.
   config.action_mailer.raise_delivery_errors = false

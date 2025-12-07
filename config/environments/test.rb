@@ -35,7 +35,7 @@ Rails.application.configure do
   config.active_storage.service = :test
 
   # Disable variant processor (no image uploads in this app, image_processing gem not installed)
-  config.active_storage.variant_processor = nil
+  config.active_storage.variant_processor = :disabled
 
   # Tell Action Mailer not to deliver emails to the real world.
   # The :test delivery method accumulates sent emails in the
