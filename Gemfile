@@ -36,7 +36,7 @@ gem "solid_queue"    # REQUIRED - for background jobs (ForecastFetcherWorker, et
 gem "bootsnap", require: false
 
 # HTTP client for external API calls
-gem "httparty", "~> 0.22"
+gem "httparty", "~> 0.24"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
